@@ -61,7 +61,7 @@ public class Backup {
 
     if(args.length==0) {
       System.out.println("Look up your user ID at https://www.flickr.com/services/api/explore/flickr.photos.search");
-      System.out.println("Then run this app: java flickrget.Backup YOUR_ID_1 [OTHER_ID_2...]");
+      System.out.println("Then run this app: java -jar flickr-export.jar YOUR_ID_1 [OTHER_ID_2...]");
     }
     
     for (final String nsid : args) {
