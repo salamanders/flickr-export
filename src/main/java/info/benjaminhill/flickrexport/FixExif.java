@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -12,7 +13,6 @@ import org.apache.commons.imaging.ImageReadException;
 import org.apache.commons.imaging.ImageWriteException;
 import org.apache.commons.imaging.Imaging;
 import org.apache.commons.imaging.common.ImageMetadata;
-import org.apache.commons.imaging.common.RationalNumber;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.jpeg.exif.ExifRewriter;
 import org.apache.commons.imaging.formats.tiff.TiffField;
@@ -49,12 +49,6 @@ public class FixExif {
 
   /**
    * This example illustrates how to add/update EXIF metadata in a JPEG file.
-   * <code>
-   *  // New York City
-      final double longitude = -74.0; // 74 degrees W (in Degrees East)
-      final double latitude = 40 + (43 / 60.0); // 40 degrees N (in Degree
-      outputSet.setGPSInDegrees(longitude, latitude);
-      </code>
    * 
    * @param jpegImageFile
    *          A source image file.
@@ -64,18 +58,13 @@ public class FixExif {
    * @throws ImageReadException
    * @throws ImageWriteException
    */
-  private static void changeExifMetadata(final File jpegImageFile) {
-    try {
+  public static void setExifMetadataDate(final File jpegImageFile, final LocalDateTime ldt) throws ImageWriteException, ImageReadException, IOException {
 
       TiffOutputSet outputSet = null;
 
       final ImageMetadata metadata = Imaging.getMetadata(jpegImageFile);
       final JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
       if (null != jpegMetadata) {
-        printJpegTagValue(jpegMetadata, TiffTagConstants.TIFF_TAG_DATE_TIME);
-        printJpegTagValue(jpegMetadata, ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL);
-        printJpegTagValue(jpegMetadata, ExifTagConstants.EXIF_TAG_DATE_TIME_DIGITIZED);
-
         final TiffImageMetadata exif = jpegMetadata.getExif();
         if (null != exif) {
           outputSet = exif.getOutputSet();
@@ -86,18 +75,16 @@ public class FixExif {
       }
       final TiffOutputDirectory exifDirectory = outputSet.getOrCreateExifDirectory();
 
-      exifDirectory.removeField(ExifTagConstants.EXIF_TAG_APERTURE_VALUE);
-      exifDirectory.add(ExifTagConstants.EXIF_TAG_APERTURE_VALUE, new RationalNumber(3, 10));
-
-      final File tmpExifFile = File.createTempFile("flickr_exif", null);
+      exifDirectory.removeField(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL);
+      exifDirectory.add(ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL, ldt.format(formatter));
+      
+      final File tmpExifFile = File.createTempFile("flickr_exif", ".jpg");
       try (final OutputStream os = new BufferedOutputStream(new FileOutputStream(tmpExifFile));) {
         new ExifRewriter().updateExifMetadataLossless(jpegImageFile, os, outputSet);
       }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+      java.nio.file.Files.move(tmpExifFile.toPath(), jpegImageFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
   }
-
+/*
   private static void printJpegTagValue(final JpegImageMetadata jpegMetadata, final TagInfo tagInfo) {
     final TiffField field = jpegMetadata.findEXIFValueWithExactMatch(tagInfo);
     if (field == null) {
@@ -106,5 +93,5 @@ public class FixExif {
       System.out.println(tagInfo.name + ": " + field.getValueDescription());
     }
   }
-
+*/
 }

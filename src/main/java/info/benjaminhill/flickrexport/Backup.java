@@ -7,10 +7,14 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Scanner;
 
+import org.apache.commons.imaging.ImageReadException;
+import org.apache.commons.imaging.ImageWriteException;
 import org.scribe.model.Token;
 import org.scribe.model.Verifier;
 
@@ -36,9 +40,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 /**
- * Based on the "Backup.java" by Matthew MacKenzie v1.6 2009/01/01 
- * 
- * TODO: Set dates on images missing date info
+ * Based on the "Backup.java" by Matthew MacKenzie v1.6 2009/01/01 TODO: Set
+ * dates on images missing date info
  * https://svn.apache.org/repos/asf/commons/proper/imaging/trunk/src/test/java/
  * org/apache/commons/imaging/examples/ WriteExifMetadataExample.java
  */
@@ -61,7 +64,8 @@ public class Backup {
     final String sharedSecret = "36e07d0c8c5c7144";
 
     if (args.length == 0) {
-      //System.out.println("Look up your user ID at https://www.flickr.com/services/api/explore/flickr.photos.search");
+      // System.out.println("Look up your user ID at
+      // https://www.flickr.com/services/api/explore/flickr.photos.search");
       System.out.println("Run with Java 8: java -jar flickr-export.jar YOUR_USERNAME_1 [OTHER_USERNAME_2...]");
     }
 
@@ -89,7 +93,7 @@ public class Backup {
     apiUsername = RequestContext.getRequestContext().getAuth().getUser().getUsername().toLowerCase();
     assert apiUsername != null;
     assert apiUsername.equalsIgnoreCase(targetName);
-    
+
     backupDir = new File(System.getProperty("user.home") + File.separatorChar + "Pictures" + File.separatorChar
         + "flickr_" + BackupUtils.makeSafeFilename(apiUsername));
   }
@@ -151,18 +155,19 @@ public class Backup {
       final File setDateDir = new File(backupDir, YEAR_MONTH.format(oldest) + BackupUtils.makeSafeFilename(setName));
       setDateDir.mkdirs();
 
+      String result;
       switch (p.getMedia()) {
         case "video":
-          System.out.println(downloadVideo(p, setDateDir));
+          result = downloadVideo(p, setDateDir);
           break;
         case "photo":
-          final String result = downloadPhoto(p, setDateDir);
-          if (!result.contains("photo_exists") && !result.contains("video_id_exists")) {
-            System.out.println(result);
-          }
+          result = downloadPhoto(p, setDateDir);
           break;
         default:
           throw new RuntimeException("FATAL Unknown Media:" + p.getMedia());
+      }
+      if (!result.contains("photo_exists") && !result.contains("video_id_exists")) {
+        System.out.println(result);
       }
     } catch (final FlickrException | IOException | IllegalStateException e) {
       System.err.println(p.getUrl() + " caused " + e.getMessage());
@@ -189,7 +194,18 @@ public class Backup {
         .makeSafeFilename(p.getTitle() + "_" + url.substring(url.lastIndexOf("/") + 1, url.length()));
 
     final File newFile = new File(destDir, filename);
-    if (newFile.exists()) {
+    if (newFile.exists() && newFile.toString().toLowerCase().endsWith("jpg")) {
+      try {
+        LocalDateTime ldt = FixExif.hasDateTime(newFile);
+        if (ldt == null) {
+          final Date oldest = BackupUtils.oldest(p.getDateAdded(), p.getDatePosted(), p.getDateTaken());
+          final LocalDateTime ldtReal = LocalDateTime.ofInstant(oldest.toInstant(), ZoneId.systemDefault());
+          FixExif.setExifMetadataDate(newFile, ldtReal);
+          System.out.println("# updated exif on " + newFile.toString());
+        }
+      } catch (final ClassCastException | ImageReadException | ImageWriteException e) {
+        System.err.println("EXIF update error:" + e.toString() + " on " + newFile.toString());
+      }
       return "# photo_exists:" + newFile.toString();
     }
 
