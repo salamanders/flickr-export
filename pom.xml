@@ -4,10 +4,11 @@
 	<groupId>info.benjaminhill.flickrget</groupId>
 	<artifactId>flickr-export</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>flickr-export</name>
-
-
-
+   <properties>
+        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
 	<repositories>
 
 		<repository>
