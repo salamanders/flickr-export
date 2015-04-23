@@ -1,4 +1,4 @@
-package flickrget;
+package info.benjaminhill.flickrexport;
 
 import java.io.File;
 import java.io.FileNotFoundException;
