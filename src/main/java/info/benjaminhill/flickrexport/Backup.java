@@ -194,8 +194,25 @@ public class Backup {
         .makeSafeFilename(p.getTitle() + "_" + url.substring(url.lastIndexOf("/") + 1, url.length()));
 
     final File newFile = new File(destDir, filename);
-    if (newFile.exists() && newFile.toString().toLowerCase().endsWith("jpg")) {
-      try {
+    if (newFile.exists()) {
+      verifyExif(p, newFile);
+      return "# photo_exists:" + newFile.toString();
+    }
+
+    BackupUtils.copyStream(flickr.getPhotosInterface().getImageAsStream(p, Size.ORIGINAL), newFile);
+    verifyExif(p, newFile);
+    return "photo_dl:" + newFile.toString();
+  }
+  
+  /**
+   * Checks if the file has an EXIF date, if not, tries to set it.
+   * @param p
+   * @param newFile
+   * @throws IOException
+   */
+  private static void verifyExif(final Photo p, final File newFile) throws IOException {
+    if(newFile.toString().toLowerCase().endsWith("jpg")) {
+          try {
         LocalDateTime ldt = FixExif.hasDateTime(newFile);
         if (ldt == null) {
           final Date oldest = BackupUtils.oldest(p.getDateAdded(), p.getDatePosted(), p.getDateTaken());
@@ -206,11 +223,7 @@ public class Backup {
       } catch (final ClassCastException | ImageReadException | ImageWriteException e) {
         System.err.println("EXIF update error:" + e.toString() + " on " + newFile.toString());
       }
-      return "# photo_exists:" + newFile.toString();
     }
-
-    BackupUtils.copyStream(flickr.getPhotosInterface().getImageAsStream(p, Size.ORIGINAL), newFile);
-    return "photo_dl:" + newFile.toString();
   }
 
   /**
