@@ -94,4 +94,8 @@ public class FixExif {
     }
   }
 */
+
+  private FixExif() {
+    // empty
+  }
 }

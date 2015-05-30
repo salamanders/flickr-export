@@ -13,13 +13,13 @@ import com.google.common.io.ByteStreams;
 
 public class BackupUtils {
 
-  private static final int BUF_SIZE = 1024 * 1024 * 1; // 1MB buffers
+  private static final int BUF_SIZE = 1_024 * 1_024 * 1; // 1MB buffers
 
   /**
    * Downloads to a temporary location and renames on finish so no partials
    *
    * @param is
-   * @param destinationPath
+   * @param destinationFile
    * @return
    * @throws IOException
    */
@@ -53,7 +53,7 @@ public class BackupUtils {
       }
       if (d.before(result)) {
         result = d;
-        continue;
+        // continue;
       }
     }
     return result;
@@ -62,5 +62,9 @@ public class BackupUtils {
   public static String makeSafeFilename(final String input) {
     Preconditions.checkNotNull(input);
     return input.replaceAll("[^a-zA-Z0-9\\._]+", "_");
+  }
+
+  private BackupUtils() {
+    // empty
   }
 }
